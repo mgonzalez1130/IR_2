@@ -102,4 +102,8 @@ public class IndexUtils {
         return result;
     }
 
+    public static String cleanText(String text, boolean stop, boolean stem) {
+        return "";
+    }
+
 }
