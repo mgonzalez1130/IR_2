@@ -13,14 +13,14 @@ public class Index {
 
     private static final int MAX_TERMS = 1000;
 
-    public Index(boolean stop, boolean stem) {
+    public Index(boolean stop, boolean stem, String indexNumber) {
         this.termHashMaps = new ArrayList<TermHashMap>();
         this.byteOffsets = new ByteOffsetMap();
         this.stop = stop;
         this.stem = stem;
 
         this.tempIndex = new File("tempIndex.ser");
-        this.finalIndex = new File("finalIndex.ser");
+        this.finalIndex = new File("finalIndex.ser" + indexNumber);
         try {
             tempIndex.delete();
             tempIndex.createNewFile();
