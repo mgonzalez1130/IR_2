@@ -10,13 +10,14 @@ import java.util.regex.Pattern;
 public class Parser {
 
     private static ArrayList<String> stopList;
-    private static final int QUERY_START_INDEX = 4;
+
+    // private static final int QUERY_START_INDEX = 4;
 
     public Parser(String stopListPath) {
         stopList = readStopList(stopListPath);
     }
 
-    public static ArrayList<Document> getDocuments(File file) {
+    public ArrayList<Document> getDocuments(File file) {
         ArrayList<Document> documents = new ArrayList<Document>();
 
         // Initialize the BufferedReader
@@ -72,8 +73,7 @@ public class Parser {
         return documents;
     }
 
-    public static ArrayList<Term> cleanText(String text, boolean stop,
-            boolean stem) {
+    public ArrayList<Term> cleanText(String text, boolean stop, boolean stem) {
         ArrayList<String> textTokens = tokenize(text);
         ArrayList<Term> processedTokens = new ArrayList<Term>(textTokens.size());
 

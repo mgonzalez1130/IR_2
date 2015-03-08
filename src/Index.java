@@ -5,33 +5,51 @@ import java.util.HashMap;
 
 public class Index {
 
+    private Parser parser;
     private HashMap<String, TermHashMap> termHashMaps;
     private ByteOffsetMap byteOffsets;
     private HashMap<String, Integer> docLengths;
-    private HashMap<String, ByteOffset> finalByteOffsets;
+    private HashMap<String, long[]> finalByteOffsets;
     private boolean stop;
     private boolean stem;
     private File tempIndex;
     private File finalIndex;
+    private File docLengthsFile;
+    private File collectionStats;
+    private File byteOffsetsFile;
 
     private static final int MAX_TERMS = 10000;
 
-    public Index(boolean stop, boolean stem, String indexNumber) {
+    public Index(boolean stop, boolean stem, String indexNumber, Parser parser) {
+        this.parser = parser;
         this.termHashMaps = new HashMap<String, TermHashMap>();
         this.byteOffsets = new ByteOffsetMap();
         this.docLengths = new HashMap<String, Integer>();
-        this.finalByteOffsets = new HashMap<String, ByteOffset>();
+        this.finalByteOffsets = new HashMap<String, long[]>();
         this.stop = stop;
         this.stem = stem;
 
         this.tempIndex = new File("tempIndex" + indexNumber + ".ser");
         this.finalIndex = new File("finalIndex" + indexNumber + ".ser");
+        this.docLengthsFile = new File("docLengths" + indexNumber + ".ser");
+        this.collectionStats = new File("collectionStats" + indexNumber
+                + ".ser");
+        this.byteOffsetsFile = new File("byteOffsets" + indexNumber + ".ser");
         try {
             tempIndex.delete();
             tempIndex.createNewFile();
 
             finalIndex.delete();
             finalIndex.createNewFile();
+
+            docLengthsFile.delete();
+            docLengthsFile.createNewFile();
+
+            collectionStats.delete();
+            collectionStats.createNewFile();
+
+            byteOffsetsFile.delete();
+            byteOffsetsFile.createNewFile();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -46,7 +64,7 @@ public class Index {
      *            the text to be indexed
      */
     public void indexDoc(String docId, String text) {
-        ArrayList<Term> termList = Parser.cleanText(text, stop, stem);
+        ArrayList<Term> termList = parser.cleanText(text, stop, stem);
         // System.out.println("Indexing document: " + docId + " which has "
         // + termList.size() + " terms");
         docLengths.put(docId, termList.size());
@@ -99,9 +117,34 @@ public class Index {
      */
     public void finishIndexing() {
         writeTermHashMapsToFile();
-        System.out.println("Merging partial indexes");
+        System.out.println("Merging partial indexes...");
         mergePartialIndexes();
+        System.out
+                .println("Writing files for byteOffsets, docLengths, and collectionStats...");
+
+        IndexUtils.writeToFile(IndexUtils.serialize(finalByteOffsets),
+                byteOffsetsFile);
+
+        IndexUtils
+        .writeToFile(IndexUtils.serialize(docLengths), docLengthsFile);
+
+        writeCollectionStats();
+
         System.out.println("Finished indexing");
+    }
+
+    private void writeCollectionStats() {
+        double avgDocLength = 0;
+        for (String docId : docLengths.keySet()) {
+            avgDocLength += docLengths.get(docId);
+        }
+        avgDocLength /= docLengths.size();
+
+        double vocabSize = finalByteOffsets.size();
+        double[] collectionStats = { avgDocLength, vocabSize };
+        IndexUtils.writeToFile(IndexUtils.serialize(collectionStats),
+                this.collectionStats);
+
     }
 
     @SuppressWarnings("unchecked")
@@ -110,10 +153,13 @@ public class Index {
                 .getMap();
         ArrayList<ByteOffset> byteOffsets = null;
         HashMap<String, ArrayList<Integer>> resultTermHashMap = null;
+        System.out.println("Terms to process: " + byteOffsetMap.size());
 
-        int counter = 1;
+        // int counter = 1;
         for (String term : byteOffsetMap.keySet()) {
-            System.out.println("Merging term number " + counter + " : " + term);
+            // System.out.println("Merging maps for term number " + counter +
+            // ": "
+            // + term);
             byteOffsets = byteOffsetMap.get(term);
             resultTermHashMap = new HashMap<String, ArrayList<Integer>>();
 
@@ -127,8 +173,10 @@ public class Index {
 
             ByteOffset resultByteOffset = IndexUtils.writeToFile(
                     IndexUtils.serialize(resultTermHashMap), finalIndex);
-            finalByteOffsets.put(term, resultByteOffset);
-            counter++;
+            long[] byteOffsetArray = { resultByteOffset.getStartByte(),
+                    resultByteOffset.getByteArrayLength() };
+            finalByteOffsets.put(term, byteOffsetArray);
+            // counter++;
         }
     }
 
@@ -156,10 +204,17 @@ public class Index {
         System.out.println("Terms in index: " + finalByteOffsets.size());
 
         for (String term : finalByteOffsets.keySet()) {
+            ByteOffset objectByteOffset = new ByteOffset(
+                    finalByteOffsets.get(term)[0],
+                    (int) finalByteOffsets.get(term)[1]);
             HashMap<String, ArrayList<Integer>> termMap = (HashMap<String, ArrayList<Integer>>) IndexUtils
-                    .readObjectFromFile(finalByteOffsets.get(term), finalIndex);
+                    .readObjectFromFile(objectByteOffset, finalIndex);
             System.out.println("The term " + term + " is in " + termMap.size()
                     + " documents");
         }
+    }
+
+    public HashMap<String, long[]> getFinalByteOffsets() {
+        return finalByteOffsets;
     }
 }
