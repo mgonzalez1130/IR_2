@@ -155,11 +155,10 @@ public class Index {
         HashMap<String, ArrayList<Integer>> resultTermHashMap = null;
         System.out.println("Terms to process: " + byteOffsetMap.size());
 
-        // int counter = 1;
+        int counter = 1;
         for (String term : byteOffsetMap.keySet()) {
-            // System.out.println("Merging maps for term number " + counter +
-            // ": "
-            // + term);
+            System.out.println("Merging maps for term number " + counter + ": "
+                    + term);
             byteOffsets = byteOffsetMap.get(term);
             resultTermHashMap = new HashMap<String, ArrayList<Integer>>();
 
@@ -176,7 +175,7 @@ public class Index {
             long[] byteOffsetArray = { resultByteOffset.getStartByte(),
                     resultByteOffset.getByteArrayLength() };
             finalByteOffsets.put(term, byteOffsetArray);
-            // counter++;
+            counter++;
         }
     }
 
